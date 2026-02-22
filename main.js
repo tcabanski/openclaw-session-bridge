@@ -7,7 +7,6 @@ class OpenClawSessionBridge {
   constructor() {
     this.server = null;
     this.port = game.settings.get('openclaw-session-bridge', 'port');
-    this.apiKey = game.settings.get('openclaw-session-bridge', 'apiKey');
   }
 
   async init() {
@@ -24,7 +23,7 @@ class OpenClawSessionBridge {
       // Enable CORS
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
       if (req.method === 'OPTIONS') {
         res.writeHead(200);
@@ -37,14 +36,6 @@ class OpenClawSessionBridge {
       if (req.method !== 'POST' || parsedUrl.pathname !== '/update-session') {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Not found' }));
-        return;
-      }
-
-      // Check API key
-      const authHeader = req.headers['authorization'];
-      if (!authHeader || authHeader !== `Bearer ${this.apiKey}`) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Unauthorized' }));
         return;
       }
 
@@ -149,15 +140,6 @@ Hooks.once('init', () => {
       max: 65535,
       step: 1
     }
-  });
-
-  game.settings.register('openclaw-session-bridge', 'apiKey', {
-    name: 'API Key',
-    hint: 'Secret key for authenticating requests from OpenClaw',
-    scope: 'world',
-    config: true,
-    type: String,
-    default: 'change-me-in-production'
   });
 });
 

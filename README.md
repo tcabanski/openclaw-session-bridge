@@ -13,13 +13,11 @@ Foundry VTT module to receive session updates from OpenClaw and update World set
 Configure in **Game Settings > Configure Settings > OpenClaw Session Bridge**:
 
 - **Server Port**: Unique port per world (e.g., 30001, 30002, 30003...)
-- **API Key**: Secret key shared with OpenClaw
 
 ## API Usage
 
 ```bash
 curl -X POST http://localhost:PORT/update-session \
-  -H "Authorization: Bearer API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "date": "2026-02-28",
