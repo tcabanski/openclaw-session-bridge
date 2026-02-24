@@ -21,7 +21,7 @@ class OpenClawSessionBridge {
     console.log(`OpenClaw Session Bridge | Proxy URL: ${this.proxyUrl}`);
     
     if (!this.proxyUrl || this.proxyUrl === 'http://localhost:30025') {
-      ui.notifications.warning('OpenClaw Session Bridge: Proxy URL not configured or using default. Check module settings and reload.');
+      ui.notifications.info('OpenClaw Session Bridge: Proxy URL not configured. Check module settings and reload.');
       console.warn('OpenClaw Session Bridge | Current proxyUrl:', this.proxyUrl);
       return;
     }
