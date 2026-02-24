@@ -20,9 +20,10 @@ class OpenClawSessionBridge {
     console.log(`OpenClaw Session Bridge | World: ${this.worldId}`);
     console.log(`OpenClaw Session Bridge | Proxy URL: ${this.proxyUrl}`);
     
-    if (!this.proxyUrl || this.proxyUrl === 'http://localhost:30025') {
+    console.log('OpenClaw Session Bridge | Checking proxyUrl:', this.proxyUrl);
+    if (!this.proxyUrl) {
       ui.notifications.info('OpenClaw Session Bridge: Proxy URL not configured. Check module settings and reload.');
-      console.warn('OpenClaw Session Bridge | Current proxyUrl:', this.proxyUrl);
+      console.warn('OpenClaw Session Bridge | No proxyUrl configured');
       return;
     }
     
@@ -37,14 +38,18 @@ class OpenClawSessionBridge {
     const pollingIntervalSec = game.settings.get('openclaw-session-bridge', 'pollingInterval') || 60;
     const pollingIntervalMs = pollingIntervalSec * 1000;
     
-    console.log(`OpenClaw Session Bridge | Polling every ${pollingIntervalSec} seconds`);
+    console.log(`OpenClaw Session Bridge | Polling every ${pollingIntervalSec} seconds (${pollingIntervalMs}ms)`);
+    console.log(`OpenClaw Session Bridge | Proxy URL: ${this.proxyUrl}`);
+    console.log(`OpenClaw Session Bridge | World ID: ${this.worldId}`);
     
     // Check for updates at configured interval
     this.pollingInterval = setInterval(() => {
+      console.log('OpenClaw Session Bridge | Polling for updates...');
       this.checkForUpdates();
     }, pollingIntervalMs);
     
     // Also check immediately
+    console.log('OpenClaw Session Bridge | Checking immediately...');
     this.checkForUpdates();
   }
 
