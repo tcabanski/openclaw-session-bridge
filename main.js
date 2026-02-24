@@ -188,16 +188,19 @@ class OpenClawSessionBridge {
 Hooks.once('init', () => {
   game.settings.register('openclaw-session-bridge', 'proxyUrl', {
     name: 'Proxy Server URL',
-    hint: 'URL of the OpenClaw Session Bridge proxy server (e.g., http://localhost:30025)',
+    hint: 'URL of the OpenClaw Session Bridge proxy server (e.g., http://localhost:30025). REQUIRES RELOAD after changing.',
     scope: 'world',
     config: true,
     type: String,
-    default: 'http://localhost:30025'
+    default: 'http://localhost:30025',
+    onChange: () => {
+      ui.notifications.info('OpenClaw Session Bridge: Reload Foundry for proxy URL change to take effect.');
+    }
   });
   
   game.settings.register('openclaw-session-bridge', 'pollingInterval', {
     name: 'Polling Interval (seconds)',
-    hint: 'How often to check for updates (default: 60 seconds). Lower values = faster updates but more network requests.',
+    hint: 'How often to check for updates (default: 60 seconds). Lower values = faster updates but more network requests. REQUIRES RELOAD after changing.',
     scope: 'world',
     config: true,
     type: Number,
@@ -206,6 +209,9 @@ Hooks.once('init', () => {
       min: 2,
       max: 600,
       step: 1
+    },
+    onChange: () => {
+      ui.notifications.info('OpenClaw Session Bridge: Reload Foundry for polling interval change to take effect.');
     }
   });
   
