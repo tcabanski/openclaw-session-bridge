@@ -33,10 +33,16 @@ class OpenClawSessionBridge {
   }
 
   startPolling() {
-    // Check for updates every 2 seconds
+    // Get polling interval from settings (convert seconds to milliseconds)
+    const pollingIntervalSec = game.settings.get('openclaw-session-bridge', 'pollingInterval') || 60;
+    const pollingIntervalMs = pollingIntervalSec * 1000;
+    
+    console.log(`OpenClaw Session Bridge | Polling every ${pollingIntervalSec} seconds`);
+    
+    // Check for updates at configured interval
     this.pollingInterval = setInterval(() => {
       this.checkForUpdates();
-    }, 2000);
+    }, pollingIntervalMs);
     
     // Also check immediately
     this.checkForUpdates();
@@ -182,6 +188,20 @@ Hooks.once('init', () => {
     config: true,
     type: String,
     default: 'http://localhost:30000'
+  });
+  
+  game.settings.register('openclaw-session-bridge', 'pollingInterval', {
+    name: 'Polling Interval (seconds)',
+    hint: 'How often to check for updates (default: 60 seconds). Lower values = faster updates but more network requests.',
+    scope: 'world',
+    config: true,
+    type: Number,
+    default: 60,
+    range: {
+      min: 2,
+      max: 600,
+      step: 1
+    }
   });
   
   game.settings.register('openclaw-session-bridge', 'lastUpdate', {
