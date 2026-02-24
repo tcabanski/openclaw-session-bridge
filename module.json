@@ -2,7 +2,7 @@
   "id": "openclaw-session-bridge",
   "title": "OpenClaw Session Bridge",
   "description": "Receive session updates from OpenClaw and update world settings with next session info",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "compatibility": {
     "minimum": "13",
     "verified": "13.351"
