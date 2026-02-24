@@ -4,7 +4,7 @@ const cors = require('cors');
 const app = express();
 
 // Configuration
-const PORT = process.env.PORT || 20025;
+const PORT = process.env.PORT || 30025;
 
 // In-memory store for pending updates
 const pendingUpdates = new Map();
