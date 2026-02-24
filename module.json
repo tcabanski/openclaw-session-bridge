@@ -2,7 +2,7 @@
   "id": "openclaw-session-bridge",
   "title": "OpenClaw Session Bridge",
   "description": "Receive session updates from OpenClaw and update world settings with next session info",
-  "version": "1.0.1",
+  "version": "1.0.16",
   "compatibility": {
     "minimum": "13",
     "verified": "13.351"
@@ -10,7 +10,7 @@
   "authors": [
     {
       "name": "OpenClaw",
-      "flags": {}
+      "url": "https://github.com/tcabanski/openclaw-session-bridge"
     }
   ],
   "esmodules": [
@@ -18,7 +18,10 @@
   ],
   "socket": false,
   "manifest": "https://raw.githubusercontent.com/tcabanski/openclaw-session-bridge/main/module.json",
-  "download": "https://github.com/tcabanski/openclaw-session-bridge/releases/download/v1.0.0/openclaw-session-bridge.zip",
+  "download": "https://github.com/tcabanski/openclaw-session-bridge/releases/download/v1.0.3/openclaw-session-bridge.zip",
+  "readme": "https://github.com/tcabanski/openclaw-session-bridge/blob/main/README.md",
+  "changelog": "https://github.com/tcabanski/openclaw-session-bridge/blob/main/CHANGELOG.md",
+  "bugs": "https://github.com/tcabanski/openclaw-session-bridge/issues",
   "protected": false,
   "coreTranslation": false,
   "library": false

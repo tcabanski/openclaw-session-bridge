@@ -1,149 +1,200 @@
 /**
  * OpenClaw Session Bridge for Foundry VTT
- * Receives session updates via HTTP and updates World settings
+ * Polls proxy server for session updates
  */
 
 class OpenClawSessionBridge {
   constructor() {
-    this.server = null;
-    this.port = game.settings.get('openclaw-session-bridge', 'port');
+    this.pollingInterval = null;
+    this.lastUpdateTime = 0;
+    this.worldId = null;
+    this.proxyUrl = null;
   }
 
   async init() {
+    this.worldId = game.world.id;
+    this.lastUpdateTime = game.settings.get('openclaw-session-bridge', 'lastUpdate') || 0;
+    this.proxyUrl = game.settings.get('openclaw-session-bridge', 'proxyUrl');
+    
     console.log('OpenClaw Session Bridge | Initializing...');
-    this.startServer();
+    console.log(`OpenClaw Session Bridge | World: ${this.worldId}`);
+    console.log(`OpenClaw Session Bridge | Proxy URL: ${this.proxyUrl}`);
+    
+    if (!this.proxyUrl || this.proxyUrl === 'http://localhost:30000') {
+      ui.notifications.warning('OpenClaw Session Bridge: Proxy URL not configured or using default. Check module settings and reload.');
+      console.warn('OpenClaw Session Bridge | Current proxyUrl:', this.proxyUrl);
+      return;
+    }
+    
+    // Start polling for updates
+    this.startPolling();
+    
+    ui.notifications.info('OpenClaw Session Bridge active');
   }
 
-  startServer() {
-    // Simple HTTP server using Node.js http module
-    const http = require('http');
-    const url = require('url');
+  startPolling() {
+    // Check for updates every 2 seconds
+    this.pollingInterval = setInterval(() => {
+      this.checkForUpdates();
+    }, 2000);
+    
+    // Also check immediately
+    this.checkForUpdates();
+  }
 
-    this.server = http.createServer((req, res) => {
-      // Enable CORS
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-      if (req.method === 'OPTIONS') {
-        res.writeHead(200);
-        res.end();
+  async checkForUpdates() {
+    try {
+      // Poll the proxy server for updates
+      const url = `${this.proxyUrl}/get-update?world=${encodeURIComponent(this.worldId)}`;
+      
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      
+      if (response.status === 404) {
+        // No pending update - this is normal
         return;
       }
-
-      // Only accept POST to /update-session
-      const parsedUrl = url.parse(req.url, true);
-      if (req.method !== 'POST' || parsedUrl.pathname !== '/update-session') {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not found' }));
+      
+      if (!response.ok) {
+        console.debug('OpenClaw Session Bridge | Proxy returned error:', response.status);
         return;
       }
-
-      // Read request body
-      let body = '';
-      req.on('data', chunk => {
-        body += chunk.toString();
-      });
-
-      req.on('end', async () => {
-        try {
-          const data = JSON.parse(body);
-          await this.handleUpdate(data);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true }));
-        } catch (error) {
-          console.error('OpenClaw Session Bridge | Error:', error);
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: error.message }));
-        }
-      });
-    });
-
-    this.server.listen(this.port, () => {
-      console.log(`OpenClaw Session Bridge | Server listening on port ${this.port}`);
-      ui.notifications.info(`OpenClaw Session Bridge active on port ${this.port}`);
-    });
-
-    this.server.on('error', (error) => {
-      console.error('OpenClaw Session Bridge | Server error:', error);
-      ui.notifications.error(`OpenClaw Session Bridge failed to start: ${error.message}`);
-    });
+      
+      const result = await response.json();
+      
+      if (!result.success || !result.update) {
+        return;
+      }
+      
+      const data = result.update;
+      
+      // Check if this is a new update
+      if (data.timestamp > this.lastUpdateTime) {
+        console.log('OpenClaw Session Bridge | New update found:', data);
+        await this.handleUpdate(data);
+        
+        // Update timestamp
+        this.lastUpdateTime = data.timestamp;
+        await game.settings.set('openclaw-session-bridge', 'lastUpdate', data.timestamp);
+      }
+    } catch (error) {
+      // Network error or proxy not available
+      // Don't spam console with errors
+    }
   }
 
   async handleUpdate(data) {
     const { date, time, title, teaser } = data;
 
     if (!title || !teaser) {
-      throw new Error('Missing required fields: title and teaser');
+      console.error('OpenClaw Session Bridge | Missing title or teaser');
+      return;
     }
 
-    // Build the description HTML
-    const description = this.buildDescription(date, time, title, teaser);
+    // Build the description HTML (title and teaser only)
+    const description = this.buildDescription(title, teaser);
 
-    // Update the World document (same as Edit World dialog)
+    // Update the World document
     const worldUpdate = {
       description: description
     };
 
     // If we have a date, try to parse it for nextSession
+    // nextSession should be an ISO 8601 string (e.g., "2026-03-01T19:00:00")
     if (date) {
-      const dateTime = time ? `${date} ${time}` : date;
-      const timestamp = Date.parse(dateTime);
-      if (!isNaN(timestamp)) {
-        worldUpdate.nextSession = timestamp;
+      try {
+        // Parse date and time in local timezone
+        let dateTimeStr;
+        if (time) {
+          dateTimeStr = `${date} ${time}`;
+        } else {
+          dateTimeStr = date;
+        }
+        
+        // Create a Date object (parses in local/browser timezone)
+        const parsedDate = new Date(dateTimeStr);
+        
+        if (!isNaN(parsedDate.getTime())) {
+          // Convert to ISO string for Foundry
+          worldUpdate.nextSession = parsedDate.toISOString();
+          console.log('OpenClaw Session Bridge | Parsed nextSession:', worldUpdate.nextSession, 'from:', dateTimeStr);
+        } else {
+          console.warn('OpenClaw Session Bridge | Could not parse date/time:', dateTimeStr);
+        }
+      } catch (e) {
+        console.error('OpenClaw Session Bridge | Error parsing date:', e);
       }
     }
 
-    // Update the world
-    await game.world.update(worldUpdate);
-
-    console.log('OpenClaw Session Bridge | World updated with session info');
-    ui.notifications.info('Next session info updated');
+    try {
+      // Foundry v13: Use the setup endpoint to update world
+      // This is the proper way to persist world changes
+      const worldData = {
+        action: "editWorld",
+        id: game.world.id,
+        ...worldUpdate
+      };
+      
+      await foundry.utils.fetchJsonWithTimeout(foundry.utils.getRoute("setup"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(worldData),
+      });
+      
+      // Update local copy
+      game.world.updateSource(worldUpdate);
+      
+      console.log('OpenClaw Session Bridge | Updated via setup endpoint');
+      console.log('OpenClaw Session Bridge | World updated with session info');
+      ui.notifications.info('Next session info updated');
+    } catch (error) {
+      console.error('OpenClaw Session Bridge | Error updating world:', error);
+      ui.notifications.error('Failed to update session info: ' + error.message);
+    }
   }
 
-  buildDescription(date, time, title, teaser) {
+  buildDescription(title, teaser) {
+    // Only include title and teaser in the description
+    // Date/time goes in the nextSession field, not the description
     let html = '';
-    
-    if (date) {
-      html += `<p><strong>Next Session:</strong> ${date}`;
-      if (time) {
-        html += ` at ${time}`;
-      }
-      html += `</p>`;
-    }
-
     html += `<h4>${title}</h4>`;
     html += `<p>${teaser}</p>`;
-
     return html;
   }
 
   destroy() {
-    if (this.server) {
-      this.server.close();
-      console.log('OpenClaw Session Bridge | Server stopped');
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
     }
+    console.log('OpenClaw Session Bridge | Shutting down');
   }
 }
 
 // Register settings
 Hooks.once('init', () => {
-  game.settings.register('openclaw-session-bridge', 'port', {
-    name: 'Server Port',
-    hint: 'The port number for the OpenClaw Session Bridge server (must be unique per world)',
+  game.settings.register('openclaw-session-bridge', 'proxyUrl', {
+    name: 'Proxy Server URL',
+    hint: 'URL of the OpenClaw Session Bridge proxy server (e.g., http://localhost:30000)',
     scope: 'world',
     config: true,
+    type: String,
+    default: 'http://localhost:30000'
+  });
+  
+  game.settings.register('openclaw-session-bridge', 'lastUpdate', {
+    name: 'Last Update Timestamp',
+    hint: 'Internal timestamp of last processed update',
+    scope: 'world',
+    config: false,
     type: Number,
-    default: 30001,
-    range: {
-      min: 1024,
-      max: 65535,
-      step: 1
-    }
+    default: 0
   });
 });
 
-// Start the server when ready
+// Start when ready
 Hooks.once('ready', () => {
   if (game.user.isGM) {
     window.openclawBridge = new OpenClawSessionBridge();

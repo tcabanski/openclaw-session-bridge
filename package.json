@@ -1,0 +1,22 @@
+{
+  "name": "openclaw-session-bridge",
+  "version": "1.0.2",
+  "description": "Foundry VTT module to receive session updates from OpenClaw",
+  "main": "main.js",
+  "scripts": {
+    "start": "node proxy-server.js",
+    "proxy": "node proxy-server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.0"
+  },
+  "keywords": [
+    "foundry",
+    "vtt",
+    "rpg",
+    "openclaw"
+  ],
+  "author": "OpenClaw",
+  "license": "MIT"
+}
