@@ -20,7 +20,7 @@ class OpenClawSessionBridge {
     console.log(`OpenClaw Session Bridge | World: ${this.worldId}`);
     console.log(`OpenClaw Session Bridge | Proxy URL: ${this.proxyUrl}`);
     
-    if (!this.proxyUrl || this.proxyUrl === 'http://localhost:30000') {
+    if (!this.proxyUrl || this.proxyUrl === 'http://localhost:20025') {
       ui.notifications.warning('OpenClaw Session Bridge: Proxy URL not configured or using default. Check module settings and reload.');
       console.warn('OpenClaw Session Bridge | Current proxyUrl:', this.proxyUrl);
       return;
@@ -183,11 +183,11 @@ class OpenClawSessionBridge {
 Hooks.once('init', () => {
   game.settings.register('openclaw-session-bridge', 'proxyUrl', {
     name: 'Proxy Server URL',
-    hint: 'URL of the OpenClaw Session Bridge proxy server (e.g., http://localhost:30000)',
+    hint: 'URL of the OpenClaw Session Bridge proxy server (e.g., http://localhost:20025)',
     scope: 'world',
     config: true,
     type: String,
-    default: 'http://localhost:30000'
+    default: 'http://localhost:20025'
   });
   
   game.settings.register('openclaw-session-bridge', 'pollingInterval', {
