@@ -171,7 +171,12 @@ class OpenClawSessionBridge {
     // Date/time goes in the nextSession field, not the description
     let html = '';
     html += `<h4>${title}</h4>`;
-    html += `<p>${teaser}</p>`;
+    // If teaser already has HTML tags, use it as-is; otherwise wrap in <p>
+    if (teaser.includes('<p>') || teaser.includes('<br>')) {
+      html += teaser;
+    } else {
+      html += `<p>${teaser}</p>`;
+    }
     return html;
   }
 
