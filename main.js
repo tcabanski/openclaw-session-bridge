@@ -175,7 +175,9 @@ class OpenClawSessionBridge {
     if (teaser.includes('<p>') || teaser.includes('<br>')) {
       html += teaser;
     } else {
-      html += `<p>${teaser}</p>`;
+      // Convert literal newlines to <br> tags for proper paragraph breaks
+      const teaserWithBreaks = teaser.replace(/\n/g, '<br>');
+      html += `<p>${teaserWithBreaks}</p>`;
     }
     return html;
   }
