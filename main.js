@@ -160,8 +160,23 @@ class OpenClawSessionBridge {
       console.log('OpenClaw Session Bridge | Updated via setup endpoint');
       console.log('OpenClaw Session Bridge | World updated with session info');
       ui.notifications.info('Next session info updated');
+      
+      // Acknowledge the update so the proxy removes it from the queue.
+      // If this fails it's harmless — the module will just re-process
+      // the same update on the next poll (idempotent).
+      try {
+        await fetch(`${this.proxyUrl}/ack-update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ world: this.worldId, timestamp: data.timestamp })
+        });
+        console.log('OpenClaw Session Bridge | Acknowledged update');
+      } catch (ackError) {
+        console.warn('OpenClaw Session Bridge | Ack failed (update still applied):', ackError);
+      }
     } catch (error) {
       console.error('OpenClaw Session Bridge | Error updating world:', error);
+      console.warn('OpenClaw Session Bridge | Update NOT acknowledged — will retry on next poll');
       ui.notifications.error('Failed to update session info: ' + error.message);
     }
   }

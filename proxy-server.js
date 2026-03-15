@@ -49,6 +49,8 @@ app.post('/update-session', (req, res) => {
 });
 
 // API endpoint for module to poll (GET from Foundry)
+// Returns the update but does NOT delete it — the module must call
+// POST /ack-update after successfully writing to Foundry.
 app.get('/get-update', (req, res) => {
   const world = req.query.world;
   
@@ -67,15 +69,35 @@ app.get('/get-update', (req, res) => {
   
   const update = pendingUpdates.get(worldKey);
   
-  // Return the update and remove it from pending
-  pendingUpdates.delete(worldKey);
-  
-  console.log(`[${new Date().toISOString()}] Update delivered to: ${worldKey}`);
+  console.log(`[${new Date().toISOString()}] Update peeked by: ${worldKey}`);
   
   res.json({
     success: true,
     update: update
   });
+});
+
+// Acknowledge endpoint — module calls this after a successful write
+app.post('/ack-update', (req, res) => {
+  const { world, timestamp } = req.body;
+  
+  if (!world) {
+    return res.status(400).json({ error: 'Missing world parameter' });
+  }
+  
+  const worldKey = world.toLowerCase();
+  const pending = pendingUpdates.get(worldKey);
+  
+  // Only delete if the timestamp matches (avoid acking a newer update)
+  if (pending && pending.timestamp === timestamp) {
+    pendingUpdates.delete(worldKey);
+    console.log(`[${new Date().toISOString()}] Update acknowledged for: ${worldKey}`);
+    res.json({ success: true, message: 'Update acknowledged' });
+  } else if (!pending) {
+    res.json({ success: true, message: 'No pending update (already acked)' });
+  } else {
+    res.json({ success: false, message: 'Timestamp mismatch, newer update exists' });
+  }
 });
 
 // List pending updates (useful for debugging)
