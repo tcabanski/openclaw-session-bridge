@@ -140,21 +140,24 @@ class OpenClawSessionBridge {
     }
 
     try {
-      // Foundry v13: Use the setup endpoint to update world
-      // This is the proper way to persist world changes
+      // Use the setup endpoint to persist world metadata changes.
       const worldData = {
         action: "editWorld",
         id: game.world.id,
         ...worldUpdate
       };
       
-      await foundry.utils.fetchJsonWithTimeout(foundry.utils.getRoute("setup"), {
+      const response = await fetch(foundry.utils.getRoute("setup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(worldData),
       });
+
+      if (!response.ok) {
+        throw new Error(`Setup endpoint returned ${response.status}`);
+      }
       
-      // Update local copy
+      // Refresh the local world package data after the persisted update.
       game.world.updateSource(worldUpdate);
       
       console.log('OpenClaw Session Bridge | Updated via setup endpoint');
